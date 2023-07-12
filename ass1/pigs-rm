@@ -1,0 +1,73 @@
+#!/bin/dash
+
+if [ ! -d ".pig" ]; then
+    exit 1
+fi
+
+path=".pig/$(cat .pig/branch)"
+
+force=0
+cached=0
+
+for file in "$@"; do
+    # checking for force option
+    if [ "$file" = "--force" ]; then
+        force=1
+        continue
+    fi
+    # checking for cache option
+    if [ "$file" = "--cached" ]; then
+        cached=1
+        continue
+    fi
+
+    if [ ! -f "$path/index/$file" ]; then
+        echo "pigs-rm: error: '$file' is not in the pigs repository"
+        exit 1
+    fi
+
+    if [ $force -ne 0 ]; then
+        continue
+    fi
+
+    if [ ! -f "$file" ]; then
+        continue
+    fi
+
+    # checking if index is different to both cwd file and repository file
+    if [ -f "$path/latest/$file" ] && \
+        ! (cmp -s "$file" "$path/index/$file") && \
+        ! (cmp -s "$path/index/$file" "$path/latest/$file"); then
+        echo "pigs-rm: error: '$file' in index is different to both the working file and the repository"
+        exit 1
+    fi
+    # checking when cached option is used
+    if [ "$cached" -eq 0 ]; then
+        if [ -f "$path/latest/$file" ] && ! (cmp -s "$file" "$path/index/$file"); then
+            echo "pigs-rm: error: '$file' in the repository is different to the working file"
+            exit 1
+        fi
+
+        if [ -f "$path/staged/$file" ] || [ -f "$path/removed/$file" ]; then
+            echo "pigs-rm: error: '$file' has staged changes in the index"
+            exit 1
+        fi
+    fi
+done
+
+for file in "$@"; do
+    if [ "$file" = "--force" ] || [ "$file" = "--cached" ]; then
+        continue
+    fi
+
+    mv "$path/index/$file" "$path/removed/$file"
+
+    rm -rf "$path/staged/$file"
+
+    if [ "$cached" -eq 0 ]; then
+        rm -rf "$file"
+        if [ ! -f "$path/latest/$file" ]; then
+            rm -rf "$path/removed/$file"
+        fi
+    fi
+done

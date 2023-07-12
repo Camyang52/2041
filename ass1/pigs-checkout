@@ -1,0 +1,39 @@
+#!/bin/dash
+
+if [ ! -d ".pig" ]; then
+    exit 1
+fi
+
+oldBranch=$(cat .pig/branch)
+newBranch=$1
+
+if [ ! -d ".pig/$newBranch" ]; then
+    echo "pigs-checkout: error: unknown branch '$newBranch'"
+    exit 1
+fi
+
+echo "$newBranch" > ".pig/branch"
+echo "Switched to branch '$newBranch'"
+
+#switching to new branch
+for file in *; do
+    if [ -f ".pig/$oldBranch/staged/$file" ]; then
+        cp ".pig/$oldBranch/staged/$file" ".pig/$newBranch/staged"
+    else
+        rm -rf ".pig/$newBranch/staged/$file"
+    fi
+
+    if [ -f ".pig/$oldBranch/latest/$file" ]; then
+        if cmp -s "$file" ".pig/$oldBranch/latest/$file"; then
+            rm -rf "$file"
+        fi
+    fi
+done
+# copying files from the new branch over
+for file in ".pig/$newBranch/index/"*; do
+    if [ ! -f "$file" ] || [ -f "$(basename "$file")" ]; then
+        continue
+    fi
+
+    cp "$file" .
+done

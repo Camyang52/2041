@@ -1,0 +1,55 @@
+#!/bin/dash
+
+if [ ! -d ".pig" ]; then
+    exit 1
+fi
+
+curr=$(cat .pig/branch)
+
+# list branches
+if [ $# -eq 0 ]; then
+    #checking if there are commits
+    if [ -z "$(cat .pig/commits)" ]; then
+        echo "pigs-branch: error: this command can not be run until after the first commit"
+        exit 1
+    fi
+
+    ls -d .pig/*/ | cut -d "/" -f2 | cat
+    exit 0
+fi
+
+#deleting branch
+if [ "$1" = "-d" ]; then
+    branch=$2
+    if [ "$curr" = "$branch" ]; then
+        echo "pigs-branch: error: can not delete branch '$branch': default branch"
+        exit 1
+    fi
+
+    if [ ! -d ".pig/$branch/" ]; then
+        echo "pigs-branch: error: branch '$branch' doesn't exist"
+        exit 1
+    fi
+
+    rm -rf ".pig/$branch"
+    echo "Deleted branch '$branch'"
+    exit 0
+fi
+
+# checking if branch exists
+if [ -d ".pig/$1" ]; then
+    echo "pigs-branch: error: branch '$1' already exists"
+    exit 1
+fi
+
+mkdir ".pig/$1"
+touch .pig/commits
+mkdir ".pig/$1/index"
+mkdir ".pig/$1/latest"
+mkdir ".pig/$1/staged"
+mkdir ".pig/$1/removed"
+
+if [ "$1" != "master" ]; then
+    cp -R ".pig/$curr/index" ".pig/$1/"
+    cp -R ".pig/$curr/latest" ".pig/$1/"
+fi

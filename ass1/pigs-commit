@@ -1,0 +1,47 @@
+#!/bin/dash
+
+if [ ! -d ".pig" ]; then
+    exit 1
+fi
+
+path=".pig/$(cat .pig/branch)"
+commitMsg=$2
+
+# number of commits
+num=$(wc -l .pig/commits | cut -d " " -f1)
+
+# checking for -a flag
+if [ "$1" = "-a" ]; then
+    commitMsg=$3
+    for file in "$path"/index/*; do
+        set -- "$(basename "$file")"
+        . pigs-add
+    done
+fi
+
+# search that there are files to commit
+if [ -z "$(ls "$path"/staged)" ] && [ -z "$(ls "$path"/removed)" ]; then
+    echo "nothing to commit"
+    exit 1
+fi
+echo "$num $commitMsg" >> ".pig/commits"
+echo "Committed as commit $num"
+
+rm -rf "$path/latest/"
+mkdir "$path/latest"
+
+mkdir "$path/$num"
+for file in "$path/index/"*; do
+    if [ ! -f "$file" ]; then
+        continue
+    fi
+
+    cp "$file" "$path/$num/"
+    cp "$file" "$path/latest/"
+done
+
+rm -rf "$path/staged/"
+mkdir "$path/staged/"
+
+rm -rf "$path/removed"
+mkdir "$path/removed"

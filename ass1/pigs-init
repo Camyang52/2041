@@ -1,0 +1,20 @@
+#!/bin/dash
+
+#check if the pigs repository exists
+if [ -d ".pig" ]; then
+    echo "pigs-init: error: .pig already exists"
+    exit 1
+fi
+
+#check if pigs repository exists
+if [ -f ".pig" ]; then
+    echo "pigs-init: error: .pig already exists"
+    exit 1
+fi
+# initialise new repository
+echo "Initialized empty pigs repository in .pig"
+mkdir ".pig"
+echo "master" > ".pig/branch"
+
+set -- "master"
+. pigs-branch

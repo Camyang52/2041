@@ -1,0 +1,36 @@
+#!/bin/dash
+
+if [ ! -d ".pig" ]; then
+    exit 1
+fi
+
+path=".pig/$(cat .pig/branch)"
+filename=$1
+
+commit=$(echo "$filename" | cut -d ":" -f1)
+file=$(echo "$filename" | cut -d ":" -f2)
+
+num=$(wc -l .pig/commits | cut -d " " -f1)
+
+# check if commit is provided or not
+if [ -z "$commit" ]; then
+    if [ ! -f "$path/index/$file" ]; then
+        echo "pigs-show: error: '$file' not found in index"
+        exit 1
+    fi
+
+    cat "$path/index/$file"
+
+else
+    if [ "$commit" -ge "$num" ]; then
+        echo "pigs-show: error: unknown commit '$commit'"
+        exit 1
+    fi
+
+    if [ ! -f "$path/$commit/$file" ]; then
+        echo "pigs-show: error: '$file' not found in commit $commit"
+        exit 1
+    fi
+
+    cat "$path/$commit/$file"
+fi

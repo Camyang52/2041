@@ -1,0 +1,7 @@
+#!/bin/dash
+
+if [ ! -d ".pig" ]; then
+    exit
+fi
+tac ".pig/commits"
+exit 1

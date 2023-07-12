@@ -1,0 +1,102 @@
+#!/bin/dash
+
+if [ ! -d ".pig" ]; then
+    exit 1
+fi
+
+path=".pig/$(cat .pig/branch)"
+
+rm -rf .temp
+mkdir .temp
+
+# adding all the removed files to a temp directory so we can output them
+for file in "$path/removed/"*; do
+    if [ ! -f "$file" ]; then
+        continue
+    fi
+
+    cp "$file" .temp/
+done
+
+#  adding files from index
+for file in "$path/index/"*; do
+    if [ ! -f "$file" ]; then
+        continue
+    fi
+
+    cp "$file" .temp/
+done
+
+# adding files from cwd
+for file in *; do
+    if [ ! -f "$file" ]; then
+        continue
+    fi
+
+    cp "$file" .temp/
+done
+
+for tempFile in .temp/*; do
+    if [ ! -f "$tempFile" ]; then
+        continue
+    fi
+
+    # check if the file was removed
+    file=$(basename "$tempFile")
+    if [ -f "$path/removed/$file" ]; then
+        if [ -f "$file" ]; then
+            if [ -f "$path/latest/$file" ]; then
+                echo "$file - deleted from index"
+            else
+                echo "$file - untracked"
+            fi
+        else
+            echo "$file - file deleted, deleted from index"
+        fi
+        continue
+    fi
+
+    # check if the file went missing
+    if [ ! -f "$file" ]; then
+        if [ -f "$path/staged/$file" ]; then
+            echo "$file - added to index, file deleted"
+        else
+            echo "$file - file deleted"
+        fi
+        continue
+    fi
+    # check if we are tracking its index
+    if [ ! -f "$path/index/$file" ]; then
+        echo "$file - untracked"
+        continue
+    fi
+
+    #check if there are previous commits
+    if [ ! -f "$path/latest/$file" ]; then
+        if [ -f "$path/staged/$file" ] && ! (cmp -s "$file" "$path/staged/$file"); then
+            echo "$file - added to index, file changed"
+        else
+            echo "$file - added to index"
+        fi
+        continue
+    fi
+
+    # check if there are already changes staged for commit
+    if [ -f "$path/staged/$file" ]; then
+        if cmp -s "$file" "$path/staged/$file"; then
+            echo "$file - file changed, changes staged for commit"
+        else
+            echo "$file - file changed, different changes staged for commit"
+        fi
+        continue
+    fi
+
+    # check if the file is the same as the one in the repository
+    if cmp -s "$file" "$path/latest/$file"; then
+        echo "$file - same as repo"
+    else
+        echo "$file - file changed, changes not staged for commit"
+    fi
+done
+
+rm -rf .temp

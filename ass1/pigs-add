@@ -1,0 +1,34 @@
+#!/bin/dash
+
+# check if directory exists
+if [ ! -d ".pig" ]; then
+    echo "pigs-add: error: pigs repository directory .pig not found"
+    exit 1
+fi
+
+path=".pig/$(cat .pig/branch)"
+
+for file in "$@"; do
+    # check if file exists in current directory
+    if [ ! -f "$file" ] && [ ! -f "$path/index/$file" ]; then
+        echo "pigs-add: error: can not open '$file'"
+        exit 1
+    fi
+done
+
+for file in "$@"; do
+    # adding removed files to removed index
+    if [ ! -f "$file" ]; then
+        mv "$path/index/$file" "$path/removed/"
+        continue
+    fi
+
+    # update index
+    cp "$file" "$path/index/"
+
+    if [ -f "$path/latest/$file" ] && cmp -s "$file" "$path/latest/$file"; then
+        rm -f "$path/staged/$file"
+    else
+        cp "$file" "$path/staged/"
+    fi
+done
